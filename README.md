@@ -108,7 +108,7 @@ npm run build
 docker compose up --build
 ```
 
-默认访问地址为 `http://localhost:8088`。
+默认访问地址为 `http://localhost`。
 
 ### 低配置 VPS 部署
 
