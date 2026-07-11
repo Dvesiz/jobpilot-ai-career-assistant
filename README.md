@@ -110,6 +110,32 @@ docker compose up --build
 
 默认访问地址为 `http://localhost:8088`。
 
+### 低配置 VPS 部署
+
+对于 2GB 以下内存的服务器，推荐在本地完成构建，再上传运行时文件，避免服务器构建时内存不足：
+
+```bash
+# 本地构建
+cd backend && mvn package -DskipTests
+cd ../frontend && npm run build
+
+# 服务器目录结构
+/opt/jobpilot/
+  docker-compose.yml
+  runtime/
+    .env
+    backend/app.jar
+    backend/data/
+    frontend/dist/
+    frontend/nginx.conf
+```
+
+仓库内的 `deploy/docker-compose.runtime.yml` 是该模式的 Compose 配置。将其复制为服务器 `/opt/jobpilot/docker-compose.yml`，根据 `deploy/runtime.env.example` 创建 `runtime/.env` 后执行：
+
+```bash
+docker compose up -d
+```
+
 ## 安全说明
 
 - 不提交数据库、构建产物、依赖目录和 `.env` 文件。

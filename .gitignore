@@ -9,6 +9,7 @@ backend/data/
 *.trace.db
 *.log
 logs/
+deploy/runtime/
 
 # Secrets and local environment overrides
 .env

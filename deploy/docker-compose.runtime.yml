@@ -1,0 +1,22 @@
+services:
+  backend:
+    image: eclipse-temurin:17-jre
+    restart: unless-stopped
+    working_dir: /app
+    command: ["java", "-XX:MaxRAMPercentage=55", "-jar", "/app/app.jar"]
+    env_file:
+      - ./runtime/.env
+    volumes:
+      - ./runtime/backend/app.jar:/app/app.jar:ro
+      - ./runtime/backend/data:/app/data
+
+  frontend:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8088:80"
+    volumes:
+      - ./runtime/frontend/dist:/usr/share/nginx/html:ro
+      - ./runtime/frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
