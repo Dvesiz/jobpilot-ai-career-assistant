@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: resumeor-api
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./data/resumeor;MODE=MySQL;AUTO_SERVER=TRUE}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+  sql:
+    init:
+      mode: always
+server:
+  port: ${SERVER_PORT:8080}
+  tomcat:
+    max-swallow-size: 10MB
+spring.servlet.multipart:
+  max-file-size: 10MB
+  max-request-size: 10MB
+app:
+  encryption-secret: ${APP_ENCRYPTION_SECRET:resumeor-local-encryption-secret-change-in-production}
+  jwt:
+    secret: ${JWT_SECRET:resumeor-local-development-secret-key-change-before-production-2026}
+    expiration-seconds: ${JWT_EXPIRATION_SECONDS:86400}
+  ai:
+    base-url: ${AI_BASE_URL:https://api.openai.com/v1/chat/completions}
+    api-key: ${AI_API_KEY:}
+    model: ${AI_MODEL:gpt-4o-mini}
+  redis:
+    enabled: ${REDIS_RATE_LIMIT_ENABLED:false}

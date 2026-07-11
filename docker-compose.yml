@@ -1,0 +1,49 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: resumeor
+      MYSQL_USER: resumeor
+      MYSQL_PASSWORD: resumeor
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+
+  backend:
+    build: ./backend
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/resumeor?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      DB_USERNAME: resumeor
+      DB_PASSWORD: resumeor
+      DB_DRIVER: com.mysql.cj.jdbc.Driver
+      SPRING_DATA_REDIS_HOST: redis
+      REDIS_RATE_LIMIT_ENABLED: "true"
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1/chat/completions}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8088:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql-data:
+  redis-data:

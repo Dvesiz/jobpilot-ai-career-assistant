@@ -1,0 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@500;600;700&family=Source+Han+Sans+CN:wght@400;500;600;700&display=swap');
+
+:root { font-family: 'Source Han Sans CN', 'Microsoft YaHei', sans-serif; color: #202a27; background: #eef0eb; font-synthesis: none; text-rendering: optimizeLegibility; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input { font: inherit; }
+button { cursor: pointer; }
