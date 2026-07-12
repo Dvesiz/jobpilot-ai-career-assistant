@@ -44,6 +44,10 @@ flowchart LR
   F --> G[点评、追问与复盘]
 ```
 
+## 界面演示
+
+![JobPilot 登录页](docs/images/login-page.png)
+
 ## 本地运行
 
 ### 前置条件
@@ -69,7 +73,7 @@ npm install
 npm run dev
 ```
 
-打开 [http://127.0.0.1:5173](http://127.0.0.1:5173)。演示账号为 `demo / demo123`。
+打开 [http://127.0.0.1:5173](http://127.0.0.1:5173)。
 
 ## 配置 AI 模型
 

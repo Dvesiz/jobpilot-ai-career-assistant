@@ -2,8 +2,16 @@ import { http } from './http'
 
 type LoginResult = { token: string; user: { id: number; username: string; nickname: string } }
 
-export async function login(username: string, password: string) {
-  const response = await http.post<{ code: number; message: string; data: LoginResult }>('/user/login', { username, password })
+export type CaptchaChallenge = { id: string; image: string }
+
+export async function getCaptcha() {
+  const response = await http.get<{ code: number; message: string; data: CaptchaChallenge }>('/user/captcha', { params: { _: Date.now() } })
+  if (response.data.code !== 0) throw new Error(response.data.message)
+  return response.data.data
+}
+
+export async function login(username: string, password: string, captchaId: string, captchaCode: string) {
+  const response = await http.post<{ code: number; message: string; data: LoginResult }>('/user/login', { username, password, captchaId, captchaCode })
   if (response.data.code !== 0) throw new Error(response.data.message)
   return response.data.data
 }

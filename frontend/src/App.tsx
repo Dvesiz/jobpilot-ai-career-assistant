@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   AimOutlined, AppstoreOutlined, CheckCircleFilled, DownloadOutlined,
-  FileTextOutlined, HomeOutlined, LogoutOutlined, PlayCircleOutlined,
-  ProfileOutlined, RightOutlined, SendOutlined, SettingOutlined, StarOutlined, UploadOutlined,
+  FileTextOutlined, HomeOutlined, LockOutlined, LogoutOutlined, PlayCircleOutlined,
+  ProfileOutlined, ReloadOutlined, RightOutlined, SafetyCertificateOutlined, SendOutlined,
+  SettingOutlined, StarOutlined, UploadOutlined, UserOutlined,
 } from '@ant-design/icons'
 import { Avatar, Button, Checkbox, Input, Select, Spin, Tag, message } from 'antd'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { changePassword, getProfile, login, register } from './api/auth'
+import { changePassword, getCaptcha, getProfile, login, register } from './api/auth'
+import type { CaptchaChallenge } from './api/auth'
 import { getDashboardSummary } from './api/dashboard'
 import type { DashboardSummary } from './api/dashboard'
 import { getAiConfig, listModels, updateAiConfig } from './api/ai'
@@ -16,6 +18,7 @@ import type { InterviewRecord } from './api/interview'
 import { deleteResume, getResume, listResumes, matchResume, uploadResume } from './api/resume'
 import type { ResumeParseResult, ResumeSummary } from './api/resume'
 import './App.css'
+import { LoginCharacters } from './LoginCharacters'
 
 type NavItem = { label: string; path: string; icon: ReactNode }
 const navigation: NavItem[] = [
@@ -138,7 +141,12 @@ function ResumePage() {
   const optimize = async () => {
     if (!result) return
     setOptimizing(true); setOptimized('')
-    try { await streamResumeOptimize(result.resumeId, (chunk) => setOptimized((value) => value + chunk)) } catch (error) { message.error(error instanceof Error ? error.message : '优化失败') } finally { setOptimizing(false) }
+    try {
+      await streamResumeOptimize(result.resumeId, (chunk) => setOptimized((value) => value + chunk))
+      const detail = await getResume(result.resumeId)
+      setOptimized(detail.optimizedContent ?? '')
+      message.success('简历优化完成并已同步')
+    } catch (error) { message.error(error instanceof Error ? error.message : '优化失败') } finally { setOptimizing(false) }
   }
   const removeSelected = async () => {
     if (!selectedId || !window.confirm('确定删除当前简历及其相关分析吗？')) return
@@ -255,6 +263,14 @@ function Login() {
   const [password, setPassword] = useState('demo123')
   const [nickname, setNickname] = useState('')
   const [loading, setLoading] = useState(false)
+  const [captcha, setCaptcha] = useState<CaptchaChallenge>()
+  const [captchaCode, setCaptchaCode] = useState('')
+  const [activeField, setActiveField] = useState<'username' | 'password' | 'captcha' | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const loadCaptcha = async () => {
+    try { setCaptcha(await getCaptcha()); setCaptchaCode('') } catch (error) { message.error(error instanceof Error ? error.message : '验证码加载失败') }
+  }
+  useEffect(() => { if (mode === 'login') loadCaptcha() }, [mode])
   const submit = async () => {
     try {
       setLoading(true)
@@ -264,20 +280,47 @@ function Login() {
         setMode('login')
         return
       }
-      const result = await login(username, password)
+      if (!captcha || !captchaCode.trim()) { message.warning('请输入图形验证码'); return }
+      const result = await login(username, password, captcha.id, captchaCode.trim())
       localStorage.setItem('resumeor_token', result.token)
       localStorage.setItem('resumeor_user', result.user.nickname)
       message.success('登录成功')
       navigate('/')
-    } catch (error) { message.error(error instanceof Error ? error.message : '操作失败') } finally { setLoading(false) }
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '操作失败')
+      if (mode === 'login') await loadCaptcha()
+    } finally { setLoading(false) }
   }
   const switchMode = () => {
     setMode((current) => current === 'login' ? 'register' : 'login')
     setUsername(mode === 'login' ? '' : 'demo')
     setPassword(mode === 'login' ? '' : 'demo123')
     setNickname('')
+    setCaptchaCode('')
+    setShowPassword(false)
   }
-  return <main className="login-page"><section><button className="brand" onClick={() => navigate('/')}><img className="brand-mark" src="/jobpilot-logo.svg" alt="JobPilot" /><span>JobPilot</span></button><p className="eyebrow">求职成长中心</p><h1>{mode === 'login' ? '欢迎回来' : '创建你的账户'}</h1><p className="subtitle">{mode === 'login' ? '演示账号已预填，可直接开始体验。' : '用一个账号保存你的求职记录。'}</p>{mode === 'register' && <Input value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="昵称" size="large" />}<Input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="账号" size="large" /><Input.Password value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码（至少 6 位）" size="large" /><Button type="primary" size="large" block loading={loading} onClick={submit}>{mode === 'login' ? '登录' : '注册'}</Button><button className="text-button login-switch" onClick={switchMode}>{mode === 'login' ? '没有账户？注册' : '已有账户？登录'}</button></section></main>
+  return <main className="login-page">
+    <section className="login-hero">
+      <button className="login-brand" onClick={() => navigate('/')}><img src="/jobpilot-logo.svg" alt="" /><span>JobPilot</span></button>
+      <div className="login-hero-copy"><h1>让每一段经历，<br />更有说服力。</h1><p>从简历优化到模拟面试，把求职准备变成清晰、可执行的下一步。</p></div>
+      <LoginCharacters isTyping={activeField === 'username'} showPassword={showPassword} passwordLength={password.length} />
+    </section>
+    <section className="login-form-panel">
+      <div className="login-form-inner">
+        <div className="login-mobile-brand"><img src="/jobpilot-logo.svg" alt="" /><span>JobPilot</span></div>
+        <header><h2>{mode === 'login' ? '欢迎回来' : '创建账户'}</h2><p>{mode === 'login' ? '登录后继续你的求职准备' : '保存你的简历、匹配和面试记录'}</p></header>
+        <div className="login-fields">
+          {mode === 'register' && <label><span>昵称</span><Input value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder="你的称呼" size="large" /></label>}
+          <label><span>账号</span><Input prefix={<UserOutlined />} value={username} onFocus={() => setActiveField('username')} onBlur={() => setActiveField(null)} onChange={(event) => setUsername(event.target.value)} placeholder="请输入账号" size="large" /></label>
+          <label><span>密码</span><Input.Password prefix={<LockOutlined />} value={password} visibilityToggle={{ visible: showPassword, onVisibleChange: setShowPassword }} onFocus={() => setActiveField('password')} onBlur={() => setActiveField(null)} onChange={(event) => setPassword(event.target.value)} onPressEnter={mode === 'register' ? submit : undefined} placeholder="至少 6 位密码" size="large" /></label>
+          {mode === 'login' && <label><span>图形验证码</span><div className="captcha-row"><Input prefix={<SafetyCertificateOutlined />} value={captchaCode} onFocus={() => setActiveField('captcha')} onBlur={() => setActiveField(null)} onChange={(event) => setCaptchaCode(event.target.value.toUpperCase())} onPressEnter={submit} maxLength={4} placeholder="输入验证码" size="large" /><button className="captcha-image" type="button" onClick={loadCaptcha} aria-label="刷新验证码" title="点击刷新验证码">{captcha ? <img src={captcha.image} alt="图形验证码" /> : <span>加载中</span>}<ReloadOutlined /></button></div></label>}
+        </div>
+        <Button className="login-submit" type="primary" size="large" block loading={loading} onClick={submit}>{mode === 'login' ? '登录 JobPilot' : '创建账户'}</Button>
+        <div className="login-divider"><span>或</span></div>
+        <button className="login-mode-switch" onClick={switchMode}>{mode === 'login' ? '创建一个新账户' : '返回账号登录'}</button>
+      </div>
+    </section>
+  </main>
 }
 
 function getGreeting() {

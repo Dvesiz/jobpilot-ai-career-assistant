@@ -62,7 +62,7 @@ export async function listResumes() {
 }
 
 export async function getResume(resumeId: number) {
-  const response = await http.get<ApiResponse<ResumeDetail>>(`/resume/${resumeId}`)
+  const response = await http.get<ApiResponse<ResumeDetail>>(`/resume/${resumeId}`, { params: { _: Date.now() } })
   if (response.data.code !== 0) throw new Error(response.data.message)
   return response.data.data
 }

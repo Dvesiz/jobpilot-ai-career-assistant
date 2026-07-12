@@ -15,14 +15,22 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 public class AuthController {
     private final JwtService jwtService;
     private final UserService userService;
+    private final CaptchaService captchaService;
 
-    public AuthController(JwtService jwtService, UserService userService) {
+    public AuthController(JwtService jwtService, UserService userService, CaptchaService captchaService) {
         this.jwtService = jwtService;
         this.userService = userService;
+        this.captchaService = captchaService;
+    }
+
+    @GetMapping("/captcha")
+    public ApiResponse<CaptchaChallenge> captcha() {
+        return ApiResponse.success(captchaService.createChallenge());
     }
 
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        captchaService.verifyAndConsume(request.captchaId(), request.captchaCode());
         return ApiResponse.success(userService.login(request, jwtService));
     }
 

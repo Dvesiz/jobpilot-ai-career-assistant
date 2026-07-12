@@ -68,7 +68,10 @@ async function stream(path: string, body: object | undefined, onChunk: (chunk: s
     const events = buffer.split('\n\n')
     buffer = events.pop() ?? ''
     for (const event of events) {
-      const data = event.split('\n').find((line) => line.startsWith('data:'))?.replace(/^data:\s*/, '')
+      const data = event.split('\n')
+        .filter((line) => line.startsWith('data:'))
+        .map((line) => line.slice(5).replace(/^ /, ''))
+        .join('\n')
       if (data && data !== '[DONE]') onChunk(data)
     }
   }
