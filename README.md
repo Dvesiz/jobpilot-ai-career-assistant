@@ -7,6 +7,10 @@
 <p align="center">面向真实求职流程的 AI 简历优化与模拟面试助手</p>
 
 <p align="center">
+  <a href="http://dvesiz.qzz.io/"><strong>在线体验 → http://dvesiz.qzz.io/</strong></a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/React-18-174D43?style=flat-square" alt="React" />
   <img src="https://img.shields.io/badge/Spring%20Boot-3.4-174D43?style=flat-square" alt="Spring Boot" />
   <img src="https://img.shields.io/badge/Java-17-C96B3A?style=flat-square" alt="Java" />
