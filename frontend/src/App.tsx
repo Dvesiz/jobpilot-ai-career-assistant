@@ -5,9 +5,11 @@ import {
   FileTextOutlined, HomeOutlined, LogoutOutlined, PlayCircleOutlined,
   ProfileOutlined, RightOutlined, SendOutlined, SettingOutlined, StarOutlined, UploadOutlined,
 } from '@ant-design/icons'
-import { Avatar, Button, Checkbox, Input, Progress, Select, Spin, Tag, message } from 'antd'
+import { Avatar, Button, Checkbox, Input, Select, Spin, Tag, message } from 'antd'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { changePassword, getProfile, login, register } from './api/auth'
+import { getDashboardSummary } from './api/dashboard'
+import type { DashboardSummary } from './api/dashboard'
 import { getAiConfig, listModels, updateAiConfig } from './api/ai'
 import { downloadInterview, followUpInterview, listInterviews, startInterview, streamInterviewAnswer, streamResumeOptimize } from './api/interview'
 import type { InterviewRecord } from './api/interview'
@@ -33,6 +35,7 @@ function Workspace() {
   const location = useLocation()
   const navigate = useNavigate()
   const [profile, setProfile] = useState<{ username: string; nickname: string }>()
+  const [summary, setSummary] = useState<DashboardSummary>()
   const active = navigation.find((item) => item.path === location.pathname) ?? navigation[0]
   useEffect(() => {
     if (!localStorage.getItem('resumeor_token')) {
@@ -43,6 +46,7 @@ function Workspace() {
       setProfile(current)
       localStorage.setItem('resumeor_user', current.nickname)
     }).catch(() => navigate('/login', { replace: true }))
+    getDashboardSummary().then(setSummary).catch(() => undefined)
   }, [navigate])
   const nickname = profile?.nickname ?? localStorage.getItem('resumeor_user') ?? '求职者'
   const avatarText = nickname.slice(0, 1)
@@ -53,22 +57,22 @@ function Workspace() {
       : active.path === '/interview' ? <InterviewPage />
         : active.path === '/review' ? <ReviewPage />
           : active.path === '/settings' ? <SettingsPage />
-          : <Dashboard onNavigate={navigate} nickname={nickname} greeting={greeting} />
+          : <Dashboard onNavigate={navigate} nickname={nickname} greeting={greeting} summary={summary} />
 
   return <main className="app-shell">
     <aside className="side-nav">
       <button className="brand" onClick={() => navigate('/')} aria-label="返回工作台"><img className="brand-mark" src="/jobpilot-logo.svg" alt="JobPilot" /><span>JobPilot</span></button>
       <nav aria-label="主导航"><p className="nav-label">工作空间</p>{navigation.map((item) => <button key={item.path} className={`nav-item ${item.path === active.path ? 'active' : ''}`} onClick={() => navigate(item.path)}>{item.icon}<span>{item.label}</span></button>)}</nav>
-      <div className="side-bottom"><div className="plan-card"><span className="plan-kicker">本月进度</span><strong>7 / 12</strong><div className="plan-line"><i /></div><span>完成一次模拟面试</span></div><button className="profile-mini" onClick={() => navigate('/settings')}><Avatar size={34} style={{ background: '#d8e7df', color: '#1f5b4f' }}>{avatarText}</Avatar><span><strong>{nickname}</strong><small>账户设置</small></span><SettingOutlined /></button><button className="side-logout" onClick={logout}><LogoutOutlined /> 退出登录</button></div>
+      <div className="side-bottom"><div className="plan-card"><span className="plan-kicker">本月完成面试</span><strong>{summary?.monthlyInterviewCount ?? 0} 次</strong><span>已提交回答并保存的记录</span></div><button className="profile-mini" onClick={() => navigate('/settings')}><Avatar size={34} style={{ background: '#d8e7df', color: '#1f5b4f' }}>{avatarText}</Avatar><span><strong>{nickname}</strong><small>账户设置</small></span><SettingOutlined /></button><button className="side-logout" onClick={logout}><LogoutOutlined /> 退出登录</button></div>
     </aside>
     <section className="workspace"><header className="topbar"><div className="crumb"><HomeOutlined /><RightOutlined /><span>{active.label}</span></div><Avatar size={34} style={{ background: '#174d43' }}>{avatarText}</Avatar></header>{page}</section>
   </main>
 }
 
-function Dashboard({ onNavigate, nickname, greeting }: { onNavigate: (path: string) => void; nickname: string; greeting: string }) {
+function Dashboard({ onNavigate, nickname, greeting, summary }: { onNavigate: (path: string) => void; nickname: string; greeting: string; summary?: DashboardSummary }) {
   return <div className="content-wrap">
     <section className="page-heading"><div><p className="eyebrow">求职成长中心</p><h1>{greeting}，{nickname}。</h1><p className="subtitle">把准备变成可以被看见的进展。</p></div><Button type="primary" icon={<StarOutlined />} onClick={() => onNavigate('/resume')}>开始优化简历</Button></section>
-    <section className="overview-grid"><article className="resume-summary"><div className="section-heading"><div><p className="eyebrow">核心路径</p><h2>从简历到复盘</h2></div><Tag color="success">已就绪</Tag></div><div className="score-row"><div className="score-orbit"><strong>01</strong><span>上传简历</span></div><div className="score-notes"><p><CheckCircleFilled /> 解析文字版 PDF，建立简历内容库</p><p><CheckCircleFilled /> 用 JD 测试岗位匹配度与缺口</p><button onClick={() => onNavigate('/resume')}>进入简历工作区 <RightOutlined /></button></div></div></article><article className="goal-card"><p className="eyebrow">今天的建议</p><h2>先完成一次岗位匹配</h2><p>把目标 JD 转换成可执行的优化清单。</p><div className="goal-line"><span>当前准备度</span><strong>68%</strong></div><Progress percent={68} showInfo={false} strokeColor="#ca6a35" trailColor="#efe6df" size="small" /><button onClick={() => onNavigate('/matching')}>开始岗位匹配 <RightOutlined /></button></article></section>
+    <section className="overview-grid"><article className="resume-summary"><div className="section-heading"><div><p className="eyebrow">简历资产</p><h2>{summary?.resumeCount ? `已保存 ${summary.resumeCount} 份简历` : '还没有已保存简历'}</h2></div><Tag color={summary?.resumeCount ? 'success' : 'default'}>{summary?.resumeCount ? '已同步' : '待上传'}</Tag></div><div className="score-row"><div className="score-orbit"><strong>{summary?.resumeCount ?? 0}</strong><span>简历数量</span></div><div className="score-notes"><p><CheckCircleFilled /> 上传后可解析内容并生成优化版本</p><p><CheckCircleFilled /> 岗位匹配与面试记录会按当前简历关联</p><button onClick={() => onNavigate('/resume')}>管理我的简历 <RightOutlined /></button></div></div></article><article className="goal-card"><p className="eyebrow">下一步动作</p><h2>{summary?.nextAction ?? '正在加载当前状态'}</h2><p>{summary?.latestMatchScore != null ? `最近岗位匹配得分：${summary.latestMatchScore} 分` : '完成当前动作后，系统会生成下一步建议。'}</p><button onClick={() => onNavigate(summary?.nextActionPath ?? '/resume')}>{summary?.nextAction ?? '上传简历'} <RightOutlined /></button></article></section>
     <section className="section-heading split-heading"><div><p className="eyebrow">下一步</p><h2>用三个动作完成一次准备循环</h2></div></section><section className="action-grid"><ActionCard index="01" title="上传并解析简历" body="读取文字版 PDF，确认内容提取结果。" action="我的简历" icon={<UploadOutlined />} onClick={() => onNavigate('/resume')} /><ActionCard index="02" title="分析目标岗位" body="输入 JD，获得匹配评分与补强建议。" action="岗位匹配" icon={<AimOutlined />} onClick={() => onNavigate('/matching')} /><ActionCard index="03" title="模拟真实面试" body="以简历和岗位为上下文进行问答练习。" action="开始面试" icon={<PlayCircleOutlined />} onClick={() => onNavigate('/interview')} /></section>
   </div>
 }
