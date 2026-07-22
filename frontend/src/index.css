@@ -1,7 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@500;600;700&family=Source+Han+Sans+CN:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600;700&display=swap');
 
-:root { font-family: 'Source Han Sans CN', 'Microsoft YaHei', sans-serif; color: #202a27; background: #eef0eb; font-synthesis: none; text-rendering: optimizeLegibility; }
+:root { font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif; color: #202522; background: #eeeee9; font-synthesis: none; text-rendering: optimizeLegibility; }
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
-button, input { font: inherit; }
+button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #b95132; outline-offset: 2px; }
+::selection { color: #fff; background: #315f52; }

@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   AimOutlined, AppstoreOutlined, CheckCircleFilled, DownloadOutlined,
-  FileTextOutlined, HomeOutlined, LockOutlined, LogoutOutlined, PlayCircleOutlined,
+  FileTextOutlined, LockOutlined, LogoutOutlined, PlayCircleOutlined,
   ProfileOutlined, ReloadOutlined, RightOutlined, SafetyCertificateOutlined, SendOutlined,
   SettingOutlined, StarOutlined, UploadOutlined, UserOutlined,
 } from '@ant-design/icons'
-import { Avatar, Button, Checkbox, Input, Select, Spin, Tag, message } from 'antd'
+import { App as AntdApp, Avatar, Button, Checkbox, Input, Select, Spin, Tag } from 'antd'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { changePassword, getCaptcha, getProfile, login, register } from './api/auth'
 import type { CaptchaChallenge } from './api/auth'
@@ -21,6 +21,15 @@ import './App.css'
 import { LoginCharacters } from './LoginCharacters'
 
 type NavItem = { label: string; path: string; icon: ReactNode }
+type MessageApi = ReturnType<typeof AntdApp.useApp>['message']
+const MessageContext = createContext<MessageApi | null>(null)
+
+function useMessage() {
+  const message = useContext(MessageContext)
+  if (!message) throw new Error('MessageContext is unavailable')
+  return message
+}
+
 const navigation: NavItem[] = [
   { label: '工作台', path: '/', icon: <AppstoreOutlined /> },
   { label: '我的简历', path: '/resume', icon: <FileTextOutlined /> },
@@ -31,7 +40,8 @@ const navigation: NavItem[] = [
 ]
 
 function App() {
-  return <BrowserRouter><Routes><Route path="/login" element={<Login />} /><Route path="/*" element={<Workspace />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></BrowserRouter>
+  const { message } = AntdApp.useApp()
+  return <MessageContext.Provider value={message}><BrowserRouter><Routes><Route path="/login" element={<Login />} /><Route path="/*" element={<Workspace />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></BrowserRouter></MessageContext.Provider>
 }
 
 function Workspace() {
@@ -63,12 +73,17 @@ function Workspace() {
           : <Dashboard onNavigate={navigate} nickname={nickname} greeting={greeting} summary={summary} />
 
   return <main className="app-shell">
-    <aside className="side-nav">
-      <button className="brand" onClick={() => navigate('/')} aria-label="返回工作台"><img className="brand-mark" src="/jobpilot-logo.svg" alt="JobPilot" /><span>JobPilot</span></button>
-      <nav aria-label="主导航"><p className="nav-label">工作空间</p>{navigation.map((item) => <button key={item.path} className={`nav-item ${item.path === active.path ? 'active' : ''}`} onClick={() => navigate(item.path)}>{item.icon}<span>{item.label}</span></button>)}</nav>
-      <div className="side-bottom"><div className="plan-card"><span className="plan-kicker">本月完成面试</span><strong>{summary?.monthlyInterviewCount ?? 0} 次</strong><span>已提交回答并保存的记录</span></div><button className="profile-mini" onClick={() => navigate('/settings')}><Avatar size={34} style={{ background: '#d8e7df', color: '#1f5b4f' }}>{avatarText}</Avatar><span><strong>{nickname}</strong><small>账户设置</small></span><SettingOutlined /></button><button className="side-logout" onClick={logout}><LogoutOutlined /> 退出登录</button></div>
-    </aside>
-    <section className="workspace"><header className="topbar"><div className="crumb"><HomeOutlined /><RightOutlined /><span>{active.label}</span></div><Avatar size={34} style={{ background: '#174d43' }}>{avatarText}</Avatar></header>{page}</section>
+    <header className="topbar">
+      <div className="topbar-main">
+        <button className="brand" onClick={() => navigate('/')} aria-label="返回工作台"><img className="brand-mark" src="/jobpilot-logo.svg" alt="" /><span>JobPilot</span><small>求职工作室</small></button>
+        <nav className="main-nav" aria-label="主导航">{navigation.map((item) => <button key={item.path} className={`nav-item ${item.path === active.path ? 'active' : ''}`} onClick={() => navigate(item.path)}>{item.icon}<span>{item.label}</span></button>)}</nav>
+        <div className="account-actions">
+          <button className="profile-mini" onClick={() => navigate('/settings')} aria-label="打开账户设置"><Avatar size={32}>{avatarText}</Avatar><span><strong>{nickname}</strong><small>{summary?.monthlyInterviewCount ?? 0} 次面试 / 本月</small></span></button>
+          <button className="icon-button" onClick={logout} aria-label="退出登录" title="退出登录"><LogoutOutlined /></button>
+        </div>
+      </div>
+    </header>
+    <section className="workspace">{page}</section>
   </main>
 }
 
@@ -81,6 +96,7 @@ function Dashboard({ onNavigate, nickname, greeting, summary }: { onNavigate: (p
 }
 
 function ResumePage() {
+  const message = useMessage()
   const [file, setFile] = useState<File>()
   const [result, setResult] = useState<ResumeParseResult>()
   const [previewUrl, setPreviewUrl] = useState('')
@@ -117,7 +133,7 @@ function ResumePage() {
     if (localStorage.getItem('resumeor_token')) {
       loadResumes().catch((error) => message.error(error instanceof Error ? error.message : '简历列表加载失败'))
     }
-  }, [])
+  }, [message])
 
   const selectFile = (selected?: File) => {
     if (!selected) return
@@ -162,6 +178,7 @@ function ResumePage() {
 }
 
 function MatchingPage() {
+  const message = useMessage()
   const [jobName, setJobName] = useState('产品设计师')
   const [jobJd, setJobJd] = useState('负责产品体验设计，开展用户研究，使用 Figma 完成原型与设计规范，能与产品和研发协作推进项目。')
   const [loading, setLoading] = useState(false)
@@ -175,6 +192,7 @@ function MatchingPage() {
 }
 
 function InterviewPage() {
+  const message = useMessage()
   const [jobName, setJobName] = useState('产品设计师')
   const [jobJd, setJobJd] = useState('关注用户研究、产品体验和跨团队协作能力。')
   const [question, setQuestion] = useState('')
@@ -196,13 +214,15 @@ function ReportContent({ report }: { report: string }) {
 }
 
 function ReviewPage() {
+  const message = useMessage()
   const [records, setRecords] = useState<InterviewRecord[]>([])
   const [loading, setLoading] = useState(true)
-  useEffect(() => { listInterviews().then(setRecords).catch(() => message.warning('请先登录并完成一次模拟面试')).finally(() => setLoading(false)) }, [])
+  useEffect(() => { listInterviews().then(setRecords).catch(() => message.warning('请先登录并完成一次模拟面试')).finally(() => setLoading(false)) }, [message])
   return <div className="content-wrap"><section className="page-heading"><div><p className="eyebrow">面试复盘</p><h1>每一次回答，都值得复看。</h1><p className="subtitle">查看已保存的问题、回答、AI 点评与参考答案。</p></div></section><section className="review-list">{loading ? <div className="loading-state"><Spin /> 正在读取记录</div> : records.length ? records.map((record) => <article className="review-card" key={record.id}><div><p className="eyebrow">{record.jobName} · {new Date(record.createTime).toLocaleDateString()}</p><h2>{record.question}</h2><p>{record.aiComment ?? '这道题尚未提交回答。'}</p></div><Button icon={<DownloadOutlined />} onClick={() => downloadInterview(record.id)}>导出复盘</Button></article>) : <EmptyPreview label="完成模拟面试后，记录会自动保存在这里" />}</section></div>
 }
 
 function SettingsPage() {
+  const message = useMessage()
   const [profile, setProfile] = useState<{ username: string; nickname: string }>()
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -217,7 +237,7 @@ function SettingsPage() {
   useEffect(() => {
     getProfile().then(setProfile).catch((error) => message.error(error.message))
     getAiConfig().then((config) => { setAiBaseUrl(config.baseUrl); setAiModel(config.model); setHasAiKey(config.hasApiKey) }).catch((error) => message.error(error.message))
-  }, [])
+  }, [message])
   const submit = async () => {
     if (newPassword.length < 6) { message.warning('新密码至少需要 6 位'); return }
     try {
@@ -257,20 +277,21 @@ function ActionCard({ index, title, body, action, icon, onClick }: { index: stri
 function EmptyPreview({ label = '解析内容会显示在这里' }: { label?: string }) { return <div className="empty-preview"><FileTextOutlined /><strong>{label}</strong><span>完成当前步骤后，即可进入下一阶段。</span></div> }
 
 function Login() {
+  const message = useMessage()
   const navigate = useNavigate()
   const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [username, setUsername] = useState('demo')
-  const [password, setPassword] = useState('demo123')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [nickname, setNickname] = useState('')
   const [loading, setLoading] = useState(false)
   const [captcha, setCaptcha] = useState<CaptchaChallenge>()
   const [captchaCode, setCaptchaCode] = useState('')
   const [activeField, setActiveField] = useState<'username' | 'password' | 'captcha' | null>(null)
   const [showPassword, setShowPassword] = useState(false)
-  const loadCaptcha = async () => {
+  const loadCaptcha = useCallback(async () => {
     try { setCaptcha(await getCaptcha()); setCaptchaCode('') } catch (error) { message.error(error instanceof Error ? error.message : '验证码加载失败') }
-  }
-  useEffect(() => { if (mode === 'login') loadCaptcha() }, [mode])
+  }, [message])
+  useEffect(() => { if (mode === 'login') loadCaptcha() }, [loadCaptcha, mode])
   const submit = async () => {
     try {
       setLoading(true)
@@ -293,8 +314,8 @@ function Login() {
   }
   const switchMode = () => {
     setMode((current) => current === 'login' ? 'register' : 'login')
-    setUsername(mode === 'login' ? '' : 'demo')
-    setPassword(mode === 'login' ? '' : 'demo123')
+    setUsername('')
+    setPassword('')
     setNickname('')
     setCaptchaCode('')
     setShowPassword(false)
